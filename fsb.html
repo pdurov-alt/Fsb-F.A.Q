@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ФСБ Black Russia</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; font-family: 'Verdana', 'Geneva', sans-serif; background: #0a0f1a; color: #e8edf5; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        .app-wrapper { position: relative; z-index: 1; width: 100%; height: 100vh; display: flex; flex-direction: column; padding: 12px 16px 16px; overflow: hidden; backdrop-filter: blur(2px); }
+
+        /* Шапка — рамки серые */
+        .header { flex-shrink: 0; text-align: center; padding: 10px 16px 8px; border-bottom: 2px solid #6a7a8e; margin-bottom: 10px; background: rgba(10, 15, 26, 0.55); border-radius: 8px 8px 0 0; backdrop-filter: blur(6px); border: 1px solid rgba(120, 140, 170, 0.3); border-bottom: 3px solid #6a7a8e; }
+        .header h1 { font-size: 2rem; font-weight: 700; text-transform: uppercase; color: #ffffff; text-shadow: 0 0 30px rgba(100, 120, 160, 0.3), 0 2px 4px rgba(0,0,0,0.8); letter-spacing: 6px; font-family: 'Verdana', 'Geneva', sans-serif; }
+        .header .subtitle { font-size: 0.85rem; color: #d0d7e6; text-shadow: 0 2px 4px rgba(0,0,0,0.8); letter-spacing: 2px; }
+        .header .badge-org { display: inline-block; background: #6a7a8e; color: #ffffff; padding: 2px 14px; border-radius: 20px; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+        /* Навигация — рамки серые, кнопки серые */
+        .tabs-nav { flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; padding: 5px 8px; background: rgba(10, 15, 26, 0.6); border-radius: 8px; backdrop-filter: blur(4px); border: 1px solid rgba(120, 140, 170, 0.25); max-height: 56px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #6a7a8e rgba(10, 15, 26, 0.3); }
+        .tabs-nav::-webkit-scrollbar { height: 4px; }
+        .tabs-nav::-webkit-scrollbar-track { background: rgba(10, 15, 26, 0.3); }
+        .tabs-nav::-webkit-scrollbar-thumb { background: #6a7a8e; border-radius: 4px; }
+        .tab-btn { background: transparent; border: 1px solid rgba(120, 140, 170, 0.4); color: #d0d7e6; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; cursor: pointer; transition: all 0.25s ease; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Verdana', 'Geneva', sans-serif; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+        .tab-btn:hover { background: rgba(120, 140, 170, 0.2); border-color: #8a9bb0; color: #ffffff; }
+        .tab-btn.active { background: #6a7a8e; border-color: #6a7a8e; color: #ffffff; box-shadow: 0 0 25px rgba(120, 140, 170, 0.3); text-shadow: none; }
+
+        /* Контент — рамки серые */
+        .tab-content-wrapper { flex: 1; min-height: 0; background: rgba(10, 15, 26, 0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(120, 140, 170, 0.25); border-radius: 8px; padding: 14px 16px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #6a7a8e rgba(10, 15, 26, 0.3); font-family: 'Verdana', 'Geneva', sans-serif; }
+        .tab-content-wrapper::-webkit-scrollbar { width: 5px; }
+        .tab-content-wrapper::-webkit-scrollbar-track { background: rgba(10, 15, 26, 0.3); border-radius: 4px; }
+        .tab-content-wrapper::-webkit-scrollbar-thumb { background: #6a7a8e; border-radius: 4px; }
+
+        .tab-pane { display: none; animation: fadeIn 0.3s ease; }
+        .tab-pane.active { display: block; }
+        @keyframes fadeIn { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
+
+        /* Тексты — все белые, рамки — серые */
+        .tab-pane h2 { font-size: 1.4rem; color: #ffffff; border-bottom: 2px solid rgba(120, 140, 170, 0.3); padding-bottom: 6px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; letter-spacing: 1px; text-shadow: 0 2px 6px rgba(0,0,0,0.7); font-family: 'Verdana', 'Geneva', sans-serif; }
+        .tab-pane h3 { font-size: 1.05rem; color: #f0f4fa; margin: 14px 0 6px; border-left: 3px solid #6a7a8e; padding-left: 10px; text-shadow: 0 2px 4px rgba(0,0,0,0.6); font-family: 'Verdana', 'Geneva', sans-serif; }
+        .tab-pane h4 { font-size: 0.95rem; color: #e0e8f0; margin: 10px 0 4px; text-shadow: 0 2px 4px rgba(0,0,0,0.6); font-family: 'Verdana', 'Geneva', sans-serif; }
+        .tab-pane p, .tab-pane li { line-height: 1.6; color: #e0e8f0; font-size: 0.88rem; text-shadow: 0 1px 3px rgba(0,0,0,0.5); font-family: 'Verdana', 'Geneva', sans-serif; }
+        .tab-pane ul, .tab-pane ol { padding-left: 20px; margin: 4px 0 10px; }
+        .tab-pane li { margin-bottom: 3px; }
+        .tab-pane strong { color: #ffffff; font-weight: 700; }
+        .highlight { color: #f0f4fa; font-weight: 600; }
+
+        .warning-box { background: rgba(120, 140, 170, 0.12); border-left: 4px solid #6a7a8e; padding: 10px 14px; border-radius: 4px; margin: 10px 0; backdrop-filter: blur(4px); }
+        .warning-box strong { color: #ffffff; }
+
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 8px 0; }
+        .card-gold { background: rgba(10, 15, 26, 0.5); border: 1px solid rgba(120, 140, 170, 0.3); border-radius: 6px; padding: 10px 12px; transition: all 0.2s ease; backdrop-filter: blur(4px); }
+        .card-gold:hover { background: rgba(20, 30, 50, 0.7); border-color: #8a9bb0; }
+        .card-gold h4 { color: #e8edf5; font-size: 0.95rem; margin-bottom: 2px; font-family: 'Verdana', 'Geneva', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.6); }
+        .card-gold p { font-size: 0.82rem; color: #d0d7e6; font-family: 'Verdana', 'Geneva', sans-serif; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+
+        .code-article { background: rgba(0, 0, 0, 0.35); border-radius: 4px; padding: 6px 12px; margin-bottom: 3px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; border-left: 2px solid #6a7a8e; font-size: 0.85rem; font-family: 'Verdana', 'Geneva', sans-serif; }
+        .code-article .title { color: #e8edf5; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+        .code-article .punishment { color: #d0d7e6; font-weight: 500; white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+
+        .rank-tag { display: inline-block; background: rgba(10, 15, 26, 0.5); padding: 2px 10px; border-radius: 16px; font-size: 0.75rem; color: #d0d7e6; border: 1px solid rgba(120, 140, 170, 0.3); margin: 2px 4px 2px 0; font-family: 'Verdana', 'Geneva', sans-serif; text-shadow: 0 1px 3px rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .rank-tag.high { border-color: #8a9bb0; color: #ffffff; background: rgba(120, 140, 170, 0.2); }
+
+        .footer { flex-shrink: 0; text-align: center; padding: 4px 0 0; opacity: 0.7; font-size: 0.6rem; border-top: 1px solid rgba(120, 140, 170, 0.15); margin-top: 6px; color: #b0baca; font-family: 'Verdana', 'Geneva', sans-serif; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+
+        pre { background: rgba(0,0,0,0.4); padding: 10px; border-radius: 4px; color: #d0d7e6; font-size: 0.8rem; font-family: 'Verdana', 'Geneva', sans-serif; margin: 6px 0; border: 1px solid rgba(120, 140, 170, 0.15); backdrop-filter: blur(4px); text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+
+        @media (max-width: 640px) { .header h1 { font-size: 1.5rem; } .tab-btn { font-size: 0.6rem; padding: 3px 8px; } .tab-content-wrapper { padding: 10px; } .code-article { flex-direction: column; align-items: flex-start; gap: 2px; } }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="app-wrapper">
+
+        <header class="header">
+            <h1>ФСБ</h1>
+            <div class="subtitle">Black Russia · Федеральная Служба Безопасности</div>
+            <span class="badge-org">Игровая государственная фракция</span>
+        </header>
+
+        <nav class="tabs-nav" id="tabsNav">
+            <button class="tab-btn active" data-tab="tab-common">Общее положение</button>
+            <button class="tab-btn" data-tab="tab-inner">Внутренний устав</button>
+            <button class="tab-btn" data-tab="tab-mask">Маскировка</button>
+            <button class="tab-btn" data-tab="tab-faqentry">Вступление</button>
+            <button class="tab-btn" data-tab="tab-uk">УК</button>
+            <button class="tab-btn" data-tab="tab-koap">КоАП</button>
+            <button class="tab-btn" data-tab="tab-ranks">Ранги</button>
+            <button class="tab-btn" data-tab="tab-promotion">Повышение</button>
+            <button class="tab-btn" data-tab="tab-faq">FAQ</button>
+        </nav>
+
+        <div class="tab-content-wrapper">
+
+            <!-- ======== ОБЩЕЕ ПОЛОЖЕНИЕ ======== -->
+            <div class="tab-pane active" id="tab-common">
+                <h2>⚖️ Общее положение</h2>
+                <p><strong>Устав ФСБ</strong> обязаны соблюдать все сотрудники организации, независимо от должности, включая Начальника ФСБ и его заместителя.</p>
+                <ul>
+                    <li><strong>Рабочее время:</strong> с 10:00 до 20:00. Обед с 13:00 до 14:00 (или по согласованию с руководством).</li>
+                    <li><strong>Высшее руководство:</strong> Начальник ФСБ и его заместитель.</li>
+                    <li>Сотрудник обязан подчиняться приказам руководства. За невыполнение — предупреждение или выговор.</li>
+                    <li>Увольнение — только за грубое нарушение устава (нарушение законов, грубое обращение с коллегами или гражданами).</li>
+                </ul>
+                <h3>Правила поведения</h3>
+                <div class="grid-2">
+                    <div class="card-gold">
+                        <h4>🚫 Запрещено</h4>
+                        <ul>
+                            <li>Применять оружие без причины</li>
+                            <li>Унижать и оскорблять кого-либо</li>
+                            <li>Использовать нецензурную брань</li>
+                            <li>Использовать полномочия в личных целях</li>
+                            <li>Использовать оружие на территории ФСБ (кроме ответной реакции)</li>
+                            <li>Находиться в казино, на контейнерах, в игровом клубе в форме</li>
+                            <li>Обращаться в рацию по нерабочим вопросам</li>
+                            <li>Носить аксессуары в рабочей форме (кроме очков)</li>
+                            <li>Работать на подработках в рабочее время или в форме</li>
+                            <li>Пользоваться служебным автомобилем в личных целях</li>
+                        </ul>
+                    </div>
+                    <div class="card-gold">
+                        <h4>✅ Разрешено / Обязанности</h4>
+                        <ul>
+                            <li>Первым атаковать гражданина, если он в розыске</li>
+                            <li>Попросить гражданина покинуть здание при угрозе (но не атаковать)</li>
+                            <li>Подчиняться законам области и другим силовым ведомствам</li>
+                            <li>Подчиняться органам, прибывшим на проверку</li>
+                            <li>Общаться с гражданами и коллегами строго на «Вы»</li>
+                            <li>Спать (АФК) только в раздевалке</li>
+                            <li>Использовать префикс [ФСБ] в рации гос. организаций</li>
+                            <li>Подчиняться проводящему построение</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="warning-box"><strong>⚠️ Нарушение устава</strong> — выговор, вплоть до увольнения.</div>
+            </div>
+
+            <!-- ======== ВНУТРЕННИЙ УСТАВ ======== -->
+            <div class="tab-pane" id="tab-inner">
+                <h2>📜 Внутренний устав ФСБ</h2>
+                <p><em>Полный текст внутреннего устава, регламентирующего деятельность организации.</em></p>
+
+                <h3>Раздел I. Общие положения</h3>
+                <h4>Глава I. Общие положения</h4>
+                <p><strong>Статья 1.</strong> Федеральная служба безопасности (ФСБ) – единая централизованная система органов, осуществляющая решение задач по обеспечению безопасности РФ.</p>
+                <p><strong>Статья 2.</strong> Полное наименование: Федеральная служба безопасности Российской Федерации. Сокращённое: ФСБ России.</p>
+                <p><strong>Статья 3.</strong> Управление ФСБ является государственным учреждением, учреждённым РФ.</p>
+                <p><strong>Статья 4.</strong> Настоящий Устав – основной внутренний документ, определяющий права, обязанности, взаимоотношения, порядок деятельности.</p>
+                <p><strong>Статья 5.</strong> За нарушение Устава сотрудник может быть уволен в одностороннем порядке без выплат.</p>
+                <p><strong>Статья 6.</strong> Устав обязателен для всех сотрудников, независимо от должности или звания.</p>
+                <p><strong>Статья 7.</strong> Изменения вносятся исключительно начальником УФСБ.</p>
+                <p><strong>Статья 8.</strong> Изменения вступают в силу после опубликования.</p>
+                <p><strong>Статья 9.</strong> Местонахождение: г. Лыткарино, 3-й Почтовый переулок, д. 17.</p>
+                <p><strong>Статья 10.</strong> Управление ФСБ является юридическим лицом, обладает финансовой автономией.</p>
+                <p><strong>Статья 11.</strong> Порядок внесения изменений: подготовка плана → рассмотрение руководством → внесение.</p>
+
+                <h4>Глава II. Понятия и определения</h4>
+                <p><strong>Статья 12.</strong> Устав – основной документ, регулирующий деятельность.</p>
+                <p><strong>Статья 13.</strong> Сотрудник – лицо, заключившее трудовой договор.</p>
+                <p><strong>Статья 14.</strong> Дисциплинарное взыскание – мера ответственности.</p>
+                <p><strong>Статья 15.</strong> Объяснительная – официальный документ.</p>
+                <p><strong>Статья 16.</strong> Кадровый резерв – сотрудники не состоящие в управлениях.</p>
+                <p><strong>Статья 17.</strong> Руководство ФСБ – начальник, заместители, помощники.</p>
+
+                <h4>Глава III. Основные сокращения</h4>
+                <p><strong>Статья 18.</strong> Перечень сокращений: РФ, ФСБ, НПА, ПК, УК, МП, СМП, ДВ, КоАП, КР, ФЗ, ЦСН, АПС.</p>
+
+                <h3>Раздел II. Организация службы</h3>
+                <h4>Глава IV. Порядок приема и увольнения</h4>
+                <p><strong>Статья 19.</strong> Поступление на стажировку – в основном через перевод из другой силовой структуры.</p>
+                <p><strong>Статья 20.</strong> Документы: паспорт, военный билет, справка 086-У, водительское удостоверение, лицензия на оружие.</p>
+                <p><strong>Статья 21.</strong> Вербовка – управление «О» с разрешения начальника.</p>
+                <p><strong>Статья 22.</strong> Причины увольнения: профнепригодность, нарушение Устава, нарушение законодательства, постановление суда, по собственному желанию, потеря доверия.</p>
+
+                <h4>Глава V. Организационно-штатная структура</h4>
+                <p><strong>Статья 23.</strong> Руководство: начальник, заместители (статс-секретарь, начальник Управления «М»).</p>
+                <p><strong>Статья 24.</strong> Старший офицерский состав: начальники управлений «К», «А», «О», АПС и их заместители.</p>
+                <p><strong>Статья 25.</strong> Структурные службы: Управление «М» (следствие), «К» (оперативно-розыскная), «А» (борьба с терроризмом), «О» (кадровая), АПС (прикомандированные). Штатная численность указана.</p>
+
+                <h3>Раздел III. Права и обязанности</h3>
+                <h4>Глава VI. Права, полномочия и обязанности</h4>
+                <p><strong>Статья 26.</strong> Общие права: сотрудники обладают полномочиями по ФЗ «О ФСБ», имеют право подать рапорт на нарушителя.</p>
+                <p><strong>Статья 27.</strong> Исполнение приказов и субординация: знать руководство в лицо, выполнять приказы старших, соблюдать субординацию, следовать рабочему графику, реагировать на вызовы, оказывать помощь, соблюдать регламент отчётов, присутствовать на собраниях, защищать граждан, всегда быть на радиосвязи, иметь жетон (кроме руководства), проходить переаттестацию в течение 48 часов, курсанты академии обязаны сдать экзамены в течение 4 дней.</p>
+                <p><strong>Статья 28.</strong> Отчёты, собрания: начальник управления вправе уволить за неактивность более 3 дней; старший состав разрабатывает положения; руководство вправе расформировать управление; руководство «М» назначает переаттестацию; начальники управлений обязаны следить за численностью и дисциплиной.</p>
+
+                <h3>Раздел IV. Служебное время и дисциплина</h3>
+                <h4>Глава VII. График работы и отпусков</h4>
+                <p><strong>Статья 29.</strong> Рабочее время: будни и выходные с 10:00 до 20:00. Обед с 13:00 до 14:00. Отпуск – до 10 календарных дней, одобряется руководством.</p>
+                <p><strong>Статья 30.</strong> Оплата труда: от 4 500 до 39 000 рублей в зависимости от звания. Премии и доплаты определяются руководством.</p>
+
+                <h4>Глава VIII. Взыскания и поощрения</h4>
+                <p><strong>Статья 31.</strong> Виды взысканий: предупреждение, выговор, увольнение.</p>
+                <p><strong>Статья 32.</strong> Порядок взысканий: управление «М» налагает на всех, другие управления – на своих сотрудников. Обжалование в течение 24 часов (кроме решений начальника ФСБ).</p>
+                <p><strong>Статья 33.</strong> Поощрения: благодарность, денежное поощрение, медали и награды.</p>
+
+                <h4>Глава IX. Субординация</h4>
+                <p><strong>Статья 34.</strong> Субординация – система правил, основанная на иерархии и уважении. Обязательна для всех.</p>
+                <p><strong>Статья 35.</strong> Основные принципы: уважение, дисциплина, обращение по званию/должности («Товарищ [звание]»).</p>
+
+                <h4>Глава X. Запреты</h4>
+                <p><strong>Статья 36.</strong> Основные запреты: посещение увеселительных мероприятий, нахождение в казино, приём граждан в маске, неэтичное общение, употребление алкоголя и наркотиков, безделье, коммерческая деятельность, получение вознаграждений, использование госимущества в личных целях, использование личного транспорта на службе (кроме исключений), засорение эфира рации, игнорирование рации и приказов, реклама своих услуг.</p>
+                <p><strong>Статья 37.</strong> Нарушение внутреннего порядка: сотрудникам до звания «Сержант» запрещено покидать территорию без разрешения; запрещено заходить в кабинет начальника без приглашения; запрещено редактировать поданные рапорты; запрещено бездействие.</p>
+
+                <h3>Раздел V. Подразделения</h3>
+                <h4>Глава XI. Структура ФСБ</h4>
+                <p><strong>Статья 38.</strong> Структурные подразделения: Управление «М» (10 чел.), «К» (12 чел.), «А» (16 чел.), «О» (9 чел.), АПС (8 чел.). Численность может быть изменена начальником.</p>
+            </div>
+
+            <!-- ======== МАСКИРОВКА ======== -->
+            <div class="tab-pane" id="tab-mask">
+                <h2>🎭 Правила маскировки</h2>
+                <p><strong>Маскировка</strong> – комплекс мероприятий, направленных на введение противника в заблуждение относительно наличия, расположения, состава, действий и намерений своих сотрудников.</p>
+                <h3>Запрещено</h3>
+                <ul>
+                    <li>Использовать маскировку в личных целях.</li>
+                    <li>Использовать маскировку для развлечения.</li>
+                    <li>Надевать/снимать униформу, если поблизости находятся другие люди (кроме агентов ФСБ).</li>
+                    <li>Раскрывать себя во время использования маскировки, показывать удостоверение (кроме агентов ФСБ).</li>
+                    <li>Вмешиваться в проведение войн за территорию/стрел.</li>
+                    <li>Играть в азартные игры.</li>
+                    <li>Разъезжать на автомобилях ФСБ.</li>
+                    <li>Проводить арест в маскировке.</li>
+                    <li>Ездить на расследование самому в маскировке.</li>
+                    <li>Одевать маскировку без разрешения старших.</li>
+                    <li>Одевать форму старшего состава.</li>
+                </ul>
+                <h3>Разрешено</h3>
+                <ul>
+                    <li>Присутствовать на собраниях.</li>
+                    <li>Вести слежку/сидеть в засаде.</li>
+                    <li>Оказывать содействие в задержании преступника агентам ФСБ.</li>
+                    <li>Проводить задержание в униформе (если вас раскрыли).</li>
+                    <li>Использовать маскировку с 7-го ранга.</li>
+                    <li>При разрешении лидера или зама с 6-го.</li>
+                </ul>
+                <h3>Агенты обязаны</h3>
+                <ul>
+                    <li>Надевать униформу для шпионажа строго с RP-отыгровкой.</li>
+                    <li>Сообщить старшим цель надевания маскировки.</li>
+                    <li>Соблюдать правила использования маскировки.</li>
+                    <li>Докладывать о своей работе, документировать (Fraps), докладывать о потенциальных опасностях.</li>
+                    <li>Работать в паре.</li>
+                </ul>
+                <h3>Role-Play отыгровка надевания маскировки</h3>
+                <p><strong>В офисе ФСБ:</strong></p>
+                <pre>
+/do Шкаф с маскировкой закрыт.
+/me открыл шкаф с маскировками, затем достал нужную форму
+/do Маскировочная форма в руках.
+/me одел маскировку, затем взял фальшивые документы
+/do Маскировка надета.
+                </pre>
+                <p><strong>Из машины на улице:</strong></p>
+                <pre>
+/do Багажник закрыт.
+/me открыл багажник автомобиля, затем достал черную сумку
+/do Сумка в руке.
+/me закрыл багажник, затем сел на заднее сиденье авто
+/do Сидит в авто.
+/me переоделся в маскировочную форму и взял фальшивые документы
+/do Маскировка надета.
+                </pre>
+                <p><strong>Из кейса на улице:</strong></p>
+                <pre>
+/do Кейс в руках.
+/me найдя укромное место открыл кейс, затем переоделся в маскировку
+/do Маскировочная форма надета.
+/me достал фальшивые документы из кейса
+                </pre>
+                <div class="warning-box"><strong>⚠️ Наказания:</strong> за нарушения – Увольнение | Выговор / Увольнение + ЧС фракции; за нарушение без RP-отыгровки – Warn. Причина: Нарушение правил эксплуатации маскировки (НПЭМ).</div>
+            </div>
+
+            <!-- ======== ВСТУПЛЕНИЕ ======== -->
+            <div class="tab-pane" id="tab-faqentry">
+                <h2>📋 F.A.Q по вступлению в ФСБ</h2>
+                <ul>
+                    <li><strong>Наличие базовых прав:</strong> водительское удостоверение, мед. карта, лицензия на оружие, военный билет.</li>
+                    <li><strong>Наличие 6-летней прописки.</strong></li>
+                    <li>Быть грамотным и ответственным.</li>
+                    <li>Иметь хоть малейшее представление о ФСБ.</li>
+                    <li>Знать основные RP-термины и уметь отыгрывать RP.</li>
+                </ul>
+                <h3>Role-Play отыгровки для собеседования</h3>
+                <p><strong>Отыгровка паспорта:</strong></p>
+                <pre>
+/do Паспорт в кармане.
+/me достал(а) паспорт из кармана
+/do Паспорт в руках.
+/me легким движением руки передал(а) паспорт человеку напротив
+                </pre>
+                <p><strong>Отыгровка лицензий:</strong></p>
+                <pre>
+/do Пакет с лицензиями находится в руках.
+/me достал(а) лицензии из пакета
+/do Лицензии в руке.
+/me легким движением руки передал(а) лицензии человеку напротив
+                </pre>
+                <p><strong>Отыгровка мед. карты:</strong></p>
+                <pre>
+/do Мед. карта в кармане.
+/me достал(а) мед. карту из кармана
+/do Мед. карта в руках.
+/me легким движением руки передал(а) мед. карту человеку напротив
+                </pre>
+                <p><strong>Отыгровка военного билета:</strong></p>
+                <pre>
+/do Военный билет в кармане.
+/me достал(а) военный билет из кармана
+/do Военный билет в руках.
+/me легким движением руки передал(а) военный билет человеку напротив
+                </pre>
+            </div>
+
+            <!-- ======== УК ======== -->
+            <div class="tab-pane" id="tab-uk">
+                <h2>⛓️ Уголовный кодекс (игровой)</h2>
+                <p>Полный перечень статей, действующих на территории Нижегородской области.</p>
+                <h3>Глава 1. Преступления против жизни и здоровья</h3>
+                <div class="code-article"><span class="title">Ст. 1. Нанесение ТП гражданскому</span><span class="punishment">ЛС на 1 год</span></div>
+                <div class="code-article"><span class="title">Ст. 2. Нанесение ТП гос. служащему</span><span class="punishment">ЛС на 2 года</span></div>
+                <div class="code-article"><span class="title">Ст. 3. Убийство гражданского</span><span class="punishment">ЛС на 4 года</span></div>
+                <div class="code-article"><span class="title">Ст. 4. Убийство гос. служащего</span><span class="punishment">ЛС на 5 лет</span></div>
+                <div class="code-article"><span class="title">Ст. 5. Попытка убийства</span><span class="punishment">ЛС на 3 года</span></div>
+                <h3>Глава 2. Имущественные преступления</h3>
+                <div class="code-article"><span class="title">Ст. 6. Кража</span><span class="punishment">ЛС на 2 года</span></div>
+                <div class="code-article"><span class="title">Ст. 7. Грабёж</span><span class="punishment">ЛС на 3 года</span></div>
+                <div class="code-article"><span class="title">Ст. 8. Разбой</span><span class="punishment">ЛС на 5 лет</span></div>
+                <div class="code-article"><span class="title">Ст. 9. Угон ТС</span><span class="punishment">ЛС на 2 года</span></div>
+                <div class="code-article"><span class="title">Ст. 10. Вымогательство</span><span class="punishment">ЛС на 4 года</span></div>
+                <h3>Глава 3. Преступления против общественной безопасности</h3>
+                <div class="code-article"><span class="title">Ст. 11. Хулиганство</span><span class="punishment">Штраф 5 000 руб. или арест 15 суток</span></div>
+                <div class="code-article"><span class="title">Ст. 12. Терроризм (угроза взрыва)</span><span class="punishment">ЛС на 10 лет</span></div>
+                <div class="code-article"><span class="title">Ст. 13. Захват заложника</span><span class="punishment">ЛС на 8 лет</span></div>
+                <h3>Глава 4. Преступления против порядка управления</h3>
+                <div class="code-article"><span class="title">Ст. 14. Неподчинение сотруднику</span><span class="punishment">ЛС на 2 года</span></div>
+                <div class="code-article"><span class="title">Ст. 15. Помеха работе правоохранителей</span><span class="punishment">ЛС на 1 год</span></div>
+                <div class="code-article"><span class="title">Ст. 16. Коррупция</span><span class="punishment">ЛС на 3 года</span></div>
+                <h3>Глава 5. Преступления против общественной нравственности</h3>
+                <div class="code-article"><span class="title">Ст. 17. Хранение и употребление наркотиков</span><span class="punishment">ЛС на 2 года</span></div>
+                <div class="code-article"><span class="title">Ст. 18. Сбыт наркотиков</span><span class="punishment">ЛС на 5 лет</span></div>
+            </div>
+
+            <!-- ======== КоАП ======== -->
+            <div class="tab-pane" id="tab-koap">
+                <h2>📝 Кодекс об административных правонарушениях</h2>
+                <div class="code-article"><span class="title">Мелкое хулиганство (нецензурная брань)</span><span class="punishment">Штраф 1 000 руб.</span></div>
+                <div class="code-article"><span class="title">Распитие спиртных напитков в общественном месте</span><span class="punishment">Штраф 1 500 руб.</span></div>
+                <div class="code-article"><span class="title">Появление в общественном месте в пьяном виде</span><span class="punishment">Штраф 1 000 руб.</span></div>
+                <div class="code-article"><span class="title">Мелкое хищение (до 1 000 руб.)</span><span class="punishment">Штраф 2 000 руб.</span></div>
+                <div class="code-article"><span class="title">Нарушение тишины (ночное время)</span><span class="punishment">Штраф 2 500 руб.</span></div>
+                <div class="code-article"><span class="title">Несанкционированная торговля</span><span class="punishment">Штраф 3 000 руб.</span></div>
+                <div class="code-article"><span class="title">Парковка в неположенном месте</span><span class="punishment">Штраф 500 руб.</span></div>
+                <div class="code-article"><span class="title">Превышение скорости (до 40 км/ч)</span><span class="punishment">Штраф 500 руб.</span></div>
+                <div class="code-article"><span class="title">Превышение скорости (более 40 км/ч)</span><span class="punishment">Штраф 1 500 руб.</span></div>
+                <div class="code-article"><span class="title">Проезд на запрещающий сигнал светофора</span><span class="punishment">Штраф 1 000 руб.</span></div>
+                <p>Штрафы могут быть заменены на предупреждение или административный арест до 15 суток.</p>
+            </div>
+
+            <!-- ======== РАНГИ ======== -->
+            <div class="tab-pane" id="tab-ranks">
+                <h2>⭐ Ранги и должности</h2>
+                <p>Иерархия званий в ФСБ:</p>
+                <div>
+                    <span class="rank-tag">Сотрудник ФСКН (1)</span>
+                    <span class="rank-tag">Сотрудник УБОП (2)</span>
+                    <span class="rank-tag">Зам. Нач. ФСКН (3)</span>
+                    <span class="rank-tag">Зам. Нач. УБОП (4)</span>
+                    <span class="rank-tag">Оперативник ЦСН (5)</span>
+                    <span class="rank-tag">Зам. Нач. ЦСН (6)</span>
+                    <span class="rank-tag">Нач. ЦСН (7)</span>
+                    <span class="rank-tag high">Инспектор ФСБ (8)</span>
+                    <span class="rank-tag high">Зам. Нач. УФСБ (9)</span>
+                    <span class="rank-tag high">Нач. УФСБ (10)</span>
+                </div>
+                <p><strong>Зарплаты:</strong> от 4 500 (ранг 1) до 24 000 (ранг 10) рублей.</p>
+                <h3>Должностные обязанности</h3>
+                <div class="grid-2">
+                    <div class="card-gold"><h4>Рядовой – Ефрейтор (1-2)</h4><p>Патрулирование, охрана, проверка документов.</p></div>
+                    <div class="card-gold"><h4>Сержант – Старшина (3-4)</h4><p>Командование группой, задержания.</p></div>
+                    <div class="card-gold"><h4>Прапорщик – Капитан (5-7)</h4><p>Руководство оперативной группой, планирование.</p></div>
+                    <div class="card-gold"><h4>Майор – Полковник (8-10)</h4><p>Управление отделом, стратегические решения.</p></div>
+                </div>
+                <h3>Правила склада</h3>
+                <div class="grid-2">
+                    <div class="card-gold"><h4>Рядовой — Ефрейтор</h4><p>❌ Нет доступа</p></div>
+                    <div class="card-gold"><h4>Сержант — Старшина</h4><p>🔹 Дубинка, Парализатор, Desert Eagle, Бронежилет</p></div>
+                    <div class="card-gold"><h4>Прапорщик — Капитан</h4><p>🔹 Дубинка, Парализатор, Desert Eagle, <span class="highlight">АК-47</span>, Бронежилет</p></div>
+                    <div class="card-gold"><h4>Майор — Полковник</h4><p class="highlight">✅ Полный доступ</p></div>
+                </div>
+                <div class="warning-box"><strong>⚠️ За нарушение правил склада</strong> — выговор вплоть до увольнения.</div>
+            </div>
+
+            <!-- ======== ПОВЫШЕНИЕ ======== -->
+            <div class="tab-pane" id="tab-promotion">
+                <h2>📈 Система повышения</h2>
+                <p>Условия для получения очередного звания.</p>
+                <h3>С Рядового [1] на Ефрейтора [2]</h3>
+                <ul>
+                    <li>Присутствовать в Спец. Рации ФСБ</li>
+                    <li>Пробыть на 2-х лекциях</li>
+                    <li>Пробыть на 3-х тренировках</li>
+                </ul>
+                <h3>С Ефрейтора [2] на Сержанта [3]</h3>
+                <ul>
+                    <li>Сдать УК РФ старшему составу или лидеру</li>
+                    <li>Сдать устав ФСБ старшему составу</li>
+                    <li>Побывать на 2 лекциях</li>
+                </ul>
+                <h3>С Сержанта [3] на Старшину [4]</h3>
+                <ul>
+                    <li>Сдать Устав ФСБ и УК РФ</li>
+                    <li>Посетить 2 лекции и 2 тренировки</li>
+                </ul>
+                <div class="warning-box"><strong>📌 Важно:</strong> Запрещено подавать рапорт на повышение на новый ранг, не повысившись до предыдущего.</div>
+                <h3>Как получить военный билет (для вступления)</h3>
+                <ol>
+                    <li>Иметь паспорт с пропиской (уровень 3+)</li>
+                    <li>Водительское удостоверение, медкарту, лицензию на оружие</li>
+                    <li>Сдать тест на знание правил</li>
+                    <li>Прибыть в воинскую часть, выполнять задания у Дежурного (NPC)</li>
+                    <li>Достичь <strong>3-го ранга (Сержант)</strong> в армии</li>
+                    <li>Подать рапорт на форуме с доказательствами</li>
+                </ol>
+            </div>
+
+            <!-- ======== FAQ ======== -->
+            <div class="tab-pane" id="tab-faq">
+                <h2>❓ Частые вопросы</h2>
+                <ul>
+                    <li><strong>Кто должен соблюдать устав?</strong> Каждый сотрудник.</li>
+                    <li><strong>За что могут уволить?</strong> За грубое нарушение устава.</li>
+                    <li><strong>Может ли ФСБ войти в закрытое жильё?</strong> Нет.</li>
+                    <li><strong>Можно ли вступить, если был в ОПГ?</strong> Да.</li>
+                    <li><strong>Что такое «законка»?</strong> Репутация для работы в гос. структурах.</li>
+                    <li><strong>Как перевестись в УФСБ?</strong> Запрещены переводы ниже 4-го ранга, макс. ранг при переводе — 7.</li>
+                    <li><strong>Можно ли носить оружие в нерабочее время?</strong> Запрещено.</li>
+                </ul>
+                <h3>Отыгровки RP (примеры)</h3>
+                <ul>
+                    <li><strong>Обыск:</strong> <code>/search [id]</code> → <code>/do Перчатки в кармане</code> → <code>/me достал(а) перчатки</code></li>
+                    <li><strong>Наручники:</strong> <code>/do Наручники висят на поясе</code> → <code>/me снял(а) наручники</code> → <code>/me надел(а) наручники</code></li>
+                    <li><strong>Посадка в авто:</strong> <code>/do Дверь закрыта</code> → <code>/me открыл(а) дверь</code> → <code>/me затолкал(а) нарушителя</code></li>
+                </ul>
+            </div>
+
+        </div>
+
+        <footer class="footer">© 2026 · ФСБ Black Russia · Полный свод уставов и кодексов</footer>
+    </div>
+
+    <!-- ===== 3D-фон с эмблемой ФСБ (золото остаётся в изображении) ===== -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        (function() {
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 28;
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            // --- Рисуем эмблему ФСБ (золото оставляем) ---
+            function createFSBTexture() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+
+                ctx.clearRect(0, 0, 512, 512);
+
+                // Щит
+                ctx.shadowColor = 'rgba(212, 175, 55, 0.5)';
+                ctx.shadowBlur = 30;
+                ctx.beginPath();
+                ctx.moveTo(256, 30);
+                ctx.lineTo(490, 130);
+                ctx.lineTo(490, 380);
+                ctx.lineTo(256, 490);
+                ctx.lineTo(22, 380);
+                ctx.lineTo(22, 130);
+                ctx.closePath();
+                ctx.fillStyle = '#0a1a3a';
+                ctx.fill();
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 10;
+                ctx.stroke();
+
+                ctx.shadowBlur = 0;
+                ctx.beginPath();
+                ctx.moveTo(256, 55);
+                ctx.lineTo(460, 145);
+                ctx.lineTo(460, 365);
+                ctx.lineTo(256, 460);
+                ctx.lineTo(52, 365);
+                ctx.lineTo(52, 145);
+                ctx.closePath();
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Орёл
+                ctx.save();
+                ctx.translate(256, 250);
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#d4af37';
+
+                ctx.beginPath();
+                ctx.ellipse(0, 10, 55, 70, 0, 0, Math.PI * 2);
+                ctx.fillStyle = '#f0f4fa';
+                ctx.fill();
+                ctx.strokeStyle = '#0a1a3a';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.shadowBlur = 0;
+                ctx.beginPath();
+                ctx.arc(-32, -38, 22, 0, Math.PI * 2);
+                ctx.fillStyle = '#f0f4fa';
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(32, -38, 22, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(-46, -42);
+                ctx.lineTo(-58, -32);
+                ctx.lineTo(-46, -28);
+                ctx.closePath();
+                ctx.fillStyle = '#d4af37';
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(46, -42);
+                ctx.lineTo(58, -32);
+                ctx.lineTo(46, -28);
+                ctx.closePath();
+                ctx.fillStyle = '#d4af37';
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#0a1a3a';
+                ctx.beginPath();
+                ctx.arc(-32, -44, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(32, -44, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(-55, -5);
+                ctx.quadraticCurveTo(-110, -35, -85, 25);
+                ctx.quadraticCurveTo(-65, 5, -55, 12);
+                ctx.fillStyle = '#f0f4fa';
+                ctx.fill();
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(55, -5);
+                ctx.quadraticCurveTo(110, -35, 85, 25);
+                ctx.quadraticCurveTo(65, 5, 55, 12);
+                ctx.fillStyle = '#f0f4fa';
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.rect(-18, 68, 12, 16);
+                ctx.fillStyle = '#d4af37';
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.rect(6, 68, 12, 16);
+                ctx.fillStyle = '#d4af37';
+                ctx.fill();
+                ctx.stroke();
+
+                // Меч
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#d4af37';
+                ctx.beginPath();
+                ctx.moveTo(0, -90);
+                ctx.lineTo(8, -20);
+                ctx.lineTo(-8, -20);
+                ctx.closePath();
+                ctx.fillStyle = '#e0e8f0';
+                ctx.fill();
+                ctx.strokeStyle = '#0a1a3a';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.fillStyle = '#d4af37';
+                ctx.fillRect(-8, -20, 16, 20);
+                ctx.fillStyle = '#d4af37';
+                ctx.fillRect(-22, -10, 44, 6);
+                ctx.fillRect(-22, 0, 44, 6);
+
+                ctx.restore();
+
+                // Надписи (золотые)
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#d4af37';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+
+                ctx.font = 'bold 56px "Times New Roman", serif';
+                ctx.fillStyle = '#d4af37';
+                ctx.fillText('ФСБ', 256, 468);
+
+                ctx.font = 'bold 28px "Times New Roman", serif';
+                ctx.fillStyle = '#d4af37';
+                ctx.fillText('ФЕДЕРАЛЬНАЯ СЛУЖБА БЕЗОПАСНОСТИ', 256, 90);
+
+                ctx.font = 'bold 24px "Times New Roman", serif';
+                ctx.fillStyle = '#c8b07a';
+                ctx.fillText('РОССИЙСКАЯ ФЕДЕРАЦИЯ', 256, 505);
+
+                return canvas;
+            }
+
+            const textureCanvas = createFSBTexture();
+            const texture = new THREE.CanvasTexture(textureCanvas);
+            texture.needsUpdate = true;
+
+            const geometry = new THREE.PlaneGeometry(18, 18);
+            const material = new THREE.MeshStandardMaterial({
+                map: texture,
+                transparent: true,
+                opacity: 0.85,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                depthTest: true,
+                emissive: new THREE.Color(0xd4af37),
+                emissiveIntensity: 0.1
+            });
+            const imageMesh = new THREE.Mesh(geometry, material);
+            imageMesh.position.set(0, 0, -12);
+            scene.add(imageMesh);
+
+            // Свет
+            const ambient = new THREE.AmbientLight(0x404060);
+            scene.add(ambient);
+            const dirLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+            const backLight = new THREE.DirectionalLight(0x6688cc, 0.5);
+            backLight.position.set(-5, 0, -5);
+            scene.add(backLight);
+
+            // Звёзды
+            const starCount = 800;
+            const starGeo = new THREE.BufferGeometry();
+            const starPos = new Float32Array(starCount * 3);
+            const starCol = new Float32Array(starCount * 3);
+            for (let i = 0; i < starCount * 3; i += 3) {
+                const r = 30 + Math.random() * 40;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((Math.random() * 2) - 1);
+                starPos[i] = r * Math.sin(phi) * Math.cos(theta);
+                starPos[i+1] = r * Math.sin(phi) * Math.sin(theta);
+                starPos[i+2] = r * Math.cos(phi);
+                const mix = Math.random();
+                starCol[i] = 0.6 + mix * 0.3;
+                starCol[i+1] = 0.5 + mix * 0.3;
+                starCol[i+2] = 0.7 + mix * 0.3;
+            }
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+            starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
+            const starMat = new THREE.PointsMaterial({
+                size: 0.15,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.2,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const stars = new THREE.Points(starGeo, starMat);
+            scene.add(stars);
+
+            const dustGeo = new THREE.BufferGeometry();
+            const dustCount = 400;
+            const dustPos = new Float32Array(dustCount * 3);
+            for (let i = 0; i < dustCount * 3; i += 3) {
+                dustPos[i] = (Math.random() - 0.5) * 200;
+                dustPos[i+1] = (Math.random() - 0.5) * 200;
+                dustPos[i+2] = (Math.random() - 0.5) * 200 - 30;
+            }
+            dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+            const dustMat = new THREE.PointsMaterial({
+                color: 0x8899bb,
+                size: 0.06,
+                transparent: true,
+                opacity: 0.1,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const dust = new THREE.Points(dustGeo, dustMat);
+            scene.add(dust);
+
+            let time = 0;
+            function animate() {
+                requestAnimationFrame(animate);
+                time += 0.002;
+                imageMesh.rotation.y = Math.sin(time * 0.15) * 0.2;
+                imageMesh.rotation.x = Math.sin(time * 0.1) * 0.06;
+                stars.rotation.y += 0.0001;
+                dust.rotation.y += 0.00015;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+        })();
+    </script>
+
+    <!-- ===== Переключение вкладок ===== -->
+    <script>
+        (function() {
+            const buttons = document.querySelectorAll('.tab-btn');
+            const panes = {};
+            document.querySelectorAll('.tab-pane').forEach(p => { panes[p.id] = p; });
+            buttons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    buttons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    Object.values(panes).forEach(p => p.classList.remove('active'));
+                    const target = this.dataset.tab;
+                    if (panes[target]) panes[target].classList.add('active');
+                });
+            });
+        })();
+    </script>
+
+</body>
+                                                                                                                                                                </html>
